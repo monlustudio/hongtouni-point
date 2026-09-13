@@ -22,10 +22,10 @@ def init_db():
     )
     # 預設建立一個管理員與測試員工
     c.execute(
-        "OR IGNORE INTO users VALUES ('admin', '店長', 'manager')"
+        "INSERT OR IGNORE INTO users VALUES ('admin', '店長', 'manager')"
     )
     c.execute(
-        "OR IGNORE INTO users VALUES ('staff01', '夥伴A', 'staff')"
+        "INSERT OR IGNORE INTO users VALUES ('staff01', '夥伴A', 'staff')"
     )
     conn.commit()
     conn.close()
@@ -124,7 +124,7 @@ elif mode == "🔐 後台：店長管理專區":
     
     password = st.text_input("請輸入店長管理密碼：", type="password")
     
-    # 簡單設定預設密碼為 "daifuku888" (可自行更改)
+    # 設定預設密碼為 "daifuku888"
     if password == "daifuku888":
         st.success("密碼驗證成功！")
         
@@ -159,13 +159,12 @@ elif mode == "🔐 後台：店長管理專區":
                 ])
                 
                 if kpi_choice == "自訂分數":
-                    points_val = st.number_input("輸入點數（增加填正數，扣分/歸零前置請看下方）：", value=10, step=1)
+                    points_val = st.number_input("輸入點數：", value=10, step=1)
                     reason_val = st.text_input("事由說明：")
                 elif "歸零" in kpi_choice:
                     points_val = 0
                     reason_val = "結算歸零"
                 else:
-                    # 從字串中解析點數
                     import re
                     match = re.search(r'\+(\d+)點', kpi_choice)
                     points_val = int(match.group(1)) if match else 0
@@ -173,7 +172,6 @@ elif mode == "🔐 後台：店長管理專區":
                 
                 if st.button("確認送出點數變動"):
                     if "歸零" in kpi_choice:
-                        # 歸零邏輯：插入一筆負的總和，或直接清空該使用者點數紀錄
                         c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (target_username,))
                         current_user_pts = c.fetchone()[0] or 0
                         if current_user_pts > 0:
