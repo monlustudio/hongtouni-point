@@ -39,7 +39,7 @@ def get_db_connection():
 # --- 介面設定 ---
 st.set_page_config(page_title="紅斗泥許願池與點數系統", page_icon="✨", layout="centered")
 
-# --- 自訂 CSS 樣式（背景 #cf9287、按鈕 #bb8370、字體 #fffeee） ---
+# --- 自訂 CSS 樣式（設定背景色 #cf9287、按鈕顏色 #bb837a 與全域白色字體 #fffeee） ---
 st.markdown("""
     <style>
     /* 全局背景色 */
@@ -60,7 +60,7 @@ st.markdown("""
         color: #fffeee !important;
     }
     
-    /* 輸入框文字設為深色，確保輸入時看得清楚 */
+    /* 輸入框文字設為深色，確保輸入時看得清楚，外框與背景用柔和米色 */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
         background-color: #fff9f5 !important;
         color: #2c2c2c !important;
@@ -86,18 +86,16 @@ st.markdown("""
         color: #2c2c2c !important;
     }
     
-    /* 將所有按鈕（包含送出按鈕、下載按鈕等）背景改為 #bb8370，文字為白色 */
-    div.stButton > button, div.stDownloadButton > button {
-        background-color: #bb8370 !important;
+    /* 所有按鈕顏色改為 #bb837a，文字改為白色 */
+    .stButton button, .stFormSubmitButton button, div.stDownloadButton > button {
+        background-color: #bb837a !important;
         color: #fffeee !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
         font-weight: 600;
+        border-radius: 8px;
     }
-    
-    /* 按鈕滑鼠懸停效果 */
-    div.stButton > button:hover, div.stDownloadButton > button:hover {
-        background-color: #a87260 !important;
+    .stButton button:hover, .stFormSubmitButton button:hover, div.stDownloadButton > button:hover {
+        background-color: #a8736a !important;
         color: #ffffff !important;
         border-color: #ffffff !important;
     }
