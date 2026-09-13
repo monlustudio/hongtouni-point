@@ -39,7 +39,7 @@ def get_db_connection():
 # --- 介面設定 ---
 st.set_page_config(page_title="紅斗泥許願池與點數系統", page_icon="✨", layout="centered")
 
-# --- 自訂 CSS 樣式（設定背景色 #cf9287 與質感排版） ---
+# --- 自訂 CSS 樣式（設定背景色 #cf9287 與全域白色字體 #fffeee） ---
 st.markdown("""
     <style>
     /* 全局背景色 */
@@ -47,16 +47,9 @@ st.markdown("""
         background-color: #cf9287 !important;
     }
     
-    /* 讓文字在深色背景上保持清晰，卡片背景改為乾淨的微透白色或純白 */
-    h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {
-        color: #2c2c2c !important;
-    }
-    
-    /* 標題與主要文字調整為深咖啡/墨色，提升質感與對比度 */
-    .main-title {
-        color: #ffffff !important;
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    /* 讓所有文字、標題、說明預設為清晰的白色 / #fffeee */
+    h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown, div[data-testid="stMarkdownContainer"] {
+        color: #fffeee !important;
     }
     
     /* 側邊欄背景與文字 */
@@ -64,18 +57,38 @@ st.markdown("""
         background-color: #b87d72 !important;
     }
     section[data-testid="stSidebar"] * {
-        color: #ffffff !important;
+        color: #fffeee !important;
     }
     
-    /* 輸入框與按鈕美化 */
+    /* 輸入框文字設為深色，確保輸入時看得清楚，外框與背景用柔和米色 */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: #ffffff !important;
+        background-color: #fff9f5 !important;
+        color: #2c2c2c !important;
+    }
+    
+    /* 下拉選單展開後的文字顏色 */
+    div[data-baseweb="popover"] * {
+        color: #2c2c2c !important;
+    }
+    
+    /* 資訊框 (st.info, st.success 等) 文字與背景調整 */
+    .stAlert {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #fffeee !important;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .stAlert * {
+        color: #fffeee !important;
+    }
+    
+    /* 表格內的文字維持清晰深色 */
+    dataframe, table * {
         color: #2c2c2c !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 class='main-title'>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
+st.markdown("<h1>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
 st.markdown("工作不無聊，目標自己選！累積點數實現大家的願望清單 🎁")
 
 # 側邊欄：模式切換
