@@ -119,7 +119,7 @@ if mode == "🏠 前台：點數與許願池":
     
     c.execute("SELECT SUM(points) FROM points_log")
     total_points = c.fetchone()[0] or 0
-    total_money = total_points * 5
+    total_money = total_points * 3
     
     col1, col2 = st.columns(2)
     col1.metric("目前全店累積總點數", f"{total_points} 點")
