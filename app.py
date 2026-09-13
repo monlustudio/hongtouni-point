@@ -111,17 +111,14 @@ mode = st.sidebar.radio("選擇模式", ["🏠 前台：點數與許願池", "�
 
 # ==================== 前台：員工專區 ====================
 if mode == "🏠 前台：點數與許願池":
-    st.subheader("🌟 團隊點數與心願牆")
-    
-    # 1. 總點數與 KPI 說明
     conn = get_db_connection()
     c = conn.cursor()
     
-    # 計算全店總點數
+    # 1. 累積點數 (最上方)
+    st.subheader("🌟 團隊點數與福利金")
+    
     c.execute("SELECT SUM(points) FROM points_log")
     total_points = c.fetchone()[0] or 0
-    
-    # 計算兌換金額 (1點 = 5元)
     total_money = total_points * 5
     
     col1, col2 = st.columns(2)
@@ -129,32 +126,25 @@ if mode == "🏠 前台：點數與許願池":
     col2.metric("相當於可運用福利金", f"NT$ {total_money}")
     
     st.markdown("---")
-    st.markdown("### 🎯 本週小 KPI 累積項目（唯賞不罰）")
-    st.markdown("""
-    - 📦 **折一箱紙盒**：+10 點
-    - 🧹 **環境打掃很乾淨**：+10 點
-    - 🛡️ **這週都沒客訴**：+20 點
-    - 🌸 **大福包得很漂亮**：+5 點
-    - 🎯 **口味這週都沒出錯**：+15 點
-    - 💡 **隱藏版：前台問卷收集 10 張**：+2 點
-    """)
     
-    st.markdown("---")
-    st.markdown("### 🎁 大家的匿名許願池")
+    # 2. 本月的許願池 (第二個)
+    st.subheader("🎁 本月的許願池")
     st.info("許願內容不設限：藍牙音響、零食櫃、外送飲料、聖誕樹、公共衛生棉、披薩炸雞、員工聚餐...大家自己發揮！")
     
-    # 顯示匿名許願清單
-    c.execute("SELECT wish_item, status, date FROM wishes ORDER BY id DESC")
+    # 顯示本月許願清單
+    c.execute("SELECT wish_item, status, date FROM wishes WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY id DESC")
     wishes = c.fetchall()
     
     if wishes:
         for idx, (item, status, date) in enumerate(wishes, 1):
             st.markdown(f"**{idx}. 🔮 {item}**  \n*(狀態：{status} | 許願時間：{date[:10]})*")
     else:
-        st.write("目前還沒有人許願，趕快來當第一個許願的人吧！")
+        st.write("本月還沒有人許願，趕快來當第一個許願的人吧！")
         
     st.markdown("---")
-    st.markdown("### ✍️ 我要來許願（每人每月限一個）")
+    
+    # 3. 登入許願 (第三個)
+    st.subheader("✍️ 我要來許願（每人每月限一個）")
     with st.form("wish_form"):
         user_account = st.text_input("請輸入你的員工帳號（僅用於驗證身分與計算次數，顯示時絕對匿名）：")
         wish_input = st.text_input("你想許願什麼物品或福利？")
@@ -178,6 +168,20 @@ if mode == "🏠 前台：點數與許願池":
                         conn.commit()
                         st.success("🎉 許願成功！你的願望已經匿名加入許願池了！")
                         st.rerun()
+                        
+    st.markdown("---")
+    
+    # 4. 計分規則 (第四個)
+    st.subheader("🎯 本週小 KPI 累積項目（唯賞不罰）")
+    st.markdown("""
+    - 📦 **折一箱紙盒**：+10 點
+    - 🧹 **環境打掃很乾淨**：+10 點
+    - 🛡️ **這週都沒客訴**：+20 點
+    - 🌸 **大福包得很漂亮**：+5 點
+    - 🎯 **口味這週都沒出錯**：+15 點
+    - 💡 **隱藏版：前台問卷收集 10 張**：+2 點
+    """)
+    
     conn.close()
 
 # ==================== 後台：店長管理專區 ====================
@@ -358,3 +362,4 @@ elif mode == "🔐 後台：店長管理專區":
         
     elif password != "":
         st.error("密碼錯誤，請重新輸入！")
+        
