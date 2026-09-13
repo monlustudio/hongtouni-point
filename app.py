@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 import streamlit as st
 
 # --- 資料庫初始化 ---
@@ -38,7 +39,43 @@ def get_db_connection():
 # --- 介面設定 ---
 st.set_page_config(page_title="紅斗泥許願池與點數系統", page_icon="✨", layout="centered")
 
-st.title("✨ 紅斗泥 · 夥伴許願池與點數福利站")
+# --- 自訂 CSS 樣式（設定背景色 #cf9287 與質感排版） ---
+st.markdown("""
+    <style>
+    /* 全局背景色 */
+    .stApp {
+        background-color: #cf9287 !important;
+    }
+    
+    /* 讓文字在深色背景上保持清晰，卡片背景改為乾淨的微透白色或純白 */
+    h1, h2, h3, h4, h5, h6, p, span, label, .stMarkdown {
+        color: #2c2c2c !important;
+    }
+    
+    /* 標題與主要文字調整為深咖啡/墨色，提升質感與對比度 */
+    .main-title {
+        color: #ffffff !important;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* 側邊欄背景與文字 */
+    section[data-testid="stSidebar"] {
+        background-color: #b87d72 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #ffffff !important;
+    }
+    
+    /* 輸入框與按鈕美化 */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"] {
+        background-color: #ffffff !important;
+        color: #2c2c2c !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 class='main-title'>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
 st.markdown("工作不無聊，目標自己選！累積點數實現大家的願望清單 🎁")
 
 # 側邊欄：模式切換
@@ -100,13 +137,11 @@ if mode == "🏠 前台：點數與許願池":
             if not user_account or not wish_input:
                 st.error("請完整輸入帳號與許願內容！")
             else:
-                # 檢查帳號是否存在
                 c.execute("SELECT * FROM users WHERE username = ?", (user_account,))
                 user = c.fetchone()
                 if not user:
                     st.error("找不到此員工帳號，請跟店長確認帳號是否正確。")
                 else:
-                    # 檢查本月是否許過願
                     c.execute("SELECT * FROM wishes WHERE username = ? AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')", (user_account,))
                     already_wished = c.fetchone()
                     if already_wished:
@@ -124,11 +159,10 @@ elif mode == "🔐 後台：店長管理專區":
     
     password = st.text_input("請輸入店長管理密碼：", type="password")
     
-    # 設定預設密碼為 "daifuku888"
     if password == "daifuku888":
         st.success("密碼驗證成功！")
         
-        tab1, tab2, tab3 = st.tabs(["➕ 點數加減管理", "👥 員工帳號管理", "📋 點數明細與願望審核"])
+        tab1, tab2, tab3 = st.tabs(["➕ 點數加減與全店歸零", "👥 員工帳號管理", "📋 點數報表與願望審核"])
         
         conn = get_db_connection()
         c = conn.cursor()
@@ -136,17 +170,19 @@ elif mode == "🔐 後台：店長管理專區":
         # 取得所有員工清單
         c.execute("SELECT username, name FROM users WHERE role != 'manager'")
         staff_list = c.fetchall()
-        staff_dict = {f"{name} ({username})": username for username, name in staff_list}
+        # 加入「全店」選項
+        staff_dict = {"🌟 【全店夥伴一起加分/歸零】": "ALL"}
+        for username, name in staff_list:
+            staff_dict[f"{name} ({username})"] = username
         
         with tab1:
-            st.markdown("### 給予夥伴點數")
-            if not staff_dict:
+            st.markdown("### 給予夥伴點數或全店結算歸零")
+            if not staff_list:
                 st.warning("目前尚無員工帳號，請先至「員工帳號管理」新增。")
             else:
-                selected_staff_label = st.selectbox("選擇要加減分的夥伴：", list(staff_dict.keys()))
+                selected_staff_label = st.selectbox("選擇對象（可選單人或全店）：", list(staff_dict.keys()))
                 target_username = staff_dict[selected_staff_label]
                 
-                # KPI 選項快速給分
                 kpi_choice = st.selectbox("選擇加分項目 / 常用操作：", [
                     "自訂分數",
                     "📦 折一箱紙盒 (+10點)",
@@ -155,7 +191,7 @@ elif mode == "🔐 後台：店長管理專區":
                     "🌸 大福包得很漂亮 (+5點)",
                     "🎯 口味這週都沒出錯 (+15點)",
                     "💡 隱藏版：前台問卷收集 10 張 (+2點)",
-                    "🔄 點數歸零重置"
+                    "🔄 點數歸零重置（將目前點數歸零）"
                 ])
                 
                 if kpi_choice == "自訂分數":
@@ -172,25 +208,44 @@ elif mode == "🔐 後台：店長管理專區":
                 
                 if st.button("確認送出點數變動"):
                     if "歸零" in kpi_choice:
-                        c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (target_username,))
-                        current_user_pts = c.fetchone()[0] or 0
-                        if current_user_pts > 0:
-                            c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
-                                      (target_username, -current_user_pts, "結算歸零重置"))
+                        if target_username == "ALL":
+                            for _, u_name in staff_list:
+                                c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (u_name,))
+                                u_pts = c.fetchone()[0] or 0
+                                if u_pts > 0:
+                                    c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
+                                              (u_name, -u_pts, "全店結算歸零重置"))
                             conn.commit()
-                            st.success(f"已將 {selected_staff_label} 的點數歸零！")
+                            st.success("已將【全店所有夥伴】的點數全數歸零重置！")
                             st.rerun()
                         else:
-                            st.info("該夥伴目前點數已經是 0。")
+                            c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (target_username,))
+                            current_user_pts = c.fetchone()[0] or 0
+                            if current_user_pts > 0:
+                                c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
+                                          (target_username, -current_user_pts, "結算歸零重置"))
+                                conn.commit()
+                                st.success(f"已將該夥伴的點數歸零！")
+                                st.rerun()
+                            else:
+                                st.info("該夥伴目前點數已經是 0。")
                     else:
-                        c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
-                                  (target_username, points_val, reason_val))
-                        conn.commit()
-                        st.success(f"成功為 {selected_staff_label} 增加 {points_val} 點！（事由：{reason_val}）")
-                        st.rerun()
+                        if target_username == "ALL":
+                            for _, u_name in staff_list:
+                                c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
+                                          (u_name, points_val, f"[全店] {reason_val}"))
+                            conn.commit()
+                            st.success(f"成功為【全店所有夥伴】各增加 {points_val} 點！（事由：{reason_val}）")
+                            st.rerun()
+                        else:
+                            c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
+                                      (target_username, points_val, reason_val))
+                            conn.commit()
+                            st.success(f"成功增加 {points_val} 點！（事由：{reason_val}）")
+                            st.rerun()
                         
         with tab2:
-            st.markdown("### 新增員工帳號")
+            st.markdown("### 新增或刪除員工帳號")
             with st.form("add_user_form"):
                 new_username = st.text_input("設定員工登入帳號（例如：staff02）：")
                 new_name = st.text_input("員工姓名/暱稱（例如：小美）：")
@@ -209,22 +264,64 @@ elif mode == "🔐 後台：店長管理專區":
                             st.error("此帳號已經存在，請換一個帳號名稱。")
                             
             st.markdown("---")
-            st.markdown("### 目前所有員工清單")
-            c.execute("SELECT username, name FROM users WHERE role != 'manager'")
-            users = c.fetchall()
-            for u, n in users:
-                st.write(f"- 帳號：`{u}` | 姓名：{n}")
-                
+            st.markdown("### 現有員工清單與刪除管理")
+            if staff_list:
+                del_staff_label = st.selectbox("選擇要刪除的員工帳號：", list(staff_dict.keys())[1:])
+                del_username = staff_dict[del_staff_label]
+                if st.button("🗑️ 確認刪除此員工帳號"):
+                    c.execute("DELETE FROM users WHERE username = ?", (del_username,))
+                    conn.commit()
+                    st.warning(f"已刪除帳號：{del_staff_label}")
+                    st.rerun()
+            else:
+                st.info("目前沒有任何員工帳號可刪除。")
+                            
         with tab3:
-            st.markdown("### 點數獲得總明細與許願審核")
-            st.markdown("#### 點數發放紀錄")
-            c.execute("SELECT l.date, u.name, l.points, l.reason FROM points_log l JOIN users u ON l.username = u.username ORDER BY l.id DESC LIMIT 20")
-            logs = c.fetchall()
-            for date, name, pts, reason in logs:
-                st.write(f"- `{date[:16]}` | **{name}**獲得 `{pts}點` | 原因：{reason}")
+            st.markdown("### 📊 點數報表與下載 Excel")
+            
+            st.markdown("#### 👥 目前各夥伴點數即時總覽")
+            c.execute("""
+                SELECT u.username, u.name, COALESCE(SUM(l.points), 0) as total_pts 
+                FROM users u 
+                LEFT JOIN points_log l ON u.username = l.username 
+                WHERE u.role != 'manager'
+                GROUP BY u.username, u.name
+            """)
+            summary_data = c.fetchall()
+            if summary_data:
+                df_summary = pd.DataFrame(summary_data, columns=["帳號", "姓名", "目前累積點數"])
+                df_summary["相當於福利金(元)"] = df_summary["目前累積點數"] * 5
+                st.dataframe(df_summary, use_container_width=True)
+            else:
+                st.info("目前尚無點數資料。")
+            
+            st.markdown("---")
+            st.markdown("#### 📥 下載完整發放紀錄 (Excel 格式)")
+            c.execute("""
+                SELECT l.id, l.date, u.name, l.username, l.points, l.reason 
+                FROM points_log l 
+                JOIN users u ON l.username = u.username 
+                ORDER BY l.id DESC
+            """)
+            logs_data = c.fetchall()
+            if logs_data:
+                df_logs = pd.DataFrame(logs_data, columns=["紀錄ID", "時間", "姓名", "帳號", "變動點數", "事由說明"])
+                
+                csv_data = df_logs.to_csv(index=False).encode('utf-8-sig')
+                st.download_button(
+                    label="📥 下載點數發放紀錄 CSV (可用 Excel 開啟)",
+                    data=csv_data,
+                    file_name="hongtouni_points_log.csv",
+                    mime="text/csv",
+                )
+                
+                st.markdown("#### 最近發放明細預覽")
+                st.dataframe(df_logs.head(10), use_container_width=True)
+            else:
+                st.write("目前尚無發放紀錄。")
                 
             st.markdown("---")
-            st.markdown("#### 許願池管理")
+            st.markdown("#### 🔮 許願池管理")
             c.execute("SELECT id, username, wish_item, status FROM wishes")
             all_wishes = c.fetchall()
             for wid, wuser, witem, wstatus in all_wishes:
