@@ -39,7 +39,7 @@ def get_db_connection():
 # --- 介面設定 ---
 st.set_page_config(page_title="紅斗泥許願池與點數系統", page_icon="✨", layout="centered")
 
-# --- 自訂 CSS 樣式（設定背景色 #cf9287、按鈕顏色 #bb837a 與全域白色字體 #fffeee） ---
+# --- 自訂 CSS 樣式 ---
 st.markdown("""
     <style>
     /* 全局背景色 */
@@ -60,7 +60,7 @@ st.markdown("""
         color: #fffeee !important;
     }
     
-    /* 輸入框文字設為深色，確保輸入時看得清楚，外框與背景用柔和米色 */
+    /* 輸入框文字設為深色，確保輸入時看得清楚 */
     .stTextInput input, .stSelectbox div[data-baseweb="select"] {
         background-color: #fff9f5 !important;
         color: #2c2c2c !important;
@@ -71,7 +71,7 @@ st.markdown("""
         color: #2c2c2c !important;
     }
     
-    /* 資訊框 (st.info, st.success 等) 文字與背景調整 */
+    /* 資訊框文字與背景調整 */
     .stAlert {
         background-color: rgba(255, 255, 255, 0.15) !important;
         color: #fffeee !important;
@@ -186,13 +186,31 @@ if mode == "🏠 前台：點數與許願池":
 
 # ==================== 後台：店長管理專區 ====================
 elif mode == "🔐 後台：店長管理專區":
-    st.subheader("🔐 店長管理後台")
+    st.subheader("🔐 店長管理後台登入")
     
-    password = st.text_input("請輸入店長管理密碼：", type="password")
-    
-    if password == "daifuku888":
-        st.success("密碼驗證成功！")
-        
+    # 使用 Session State 來記錄是否已成功登入
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        with st.form("login_form"):
+            password_input = st.text_input("請輸入店長管理密碼：", type="password")
+            login_btn = st.form_submit_button("🔐 確認登入後台")
+            
+            if login_btn:
+                if password_input == "daifuku888":
+                    st.session_state.authenticated = True
+                    st.success("登入成功！")
+                    st.rerun()
+                else:
+                    st.error("密碼錯誤，請重新輸入！")
+    else:
+        st.success("✨ 店長已成功登入管理後台")
+        if st.button("🔒 登出後台"):
+            st.session_state.authenticated = False
+            st.rerun()
+            
+        st.markdown("---")
         tab1, tab2, tab3 = st.tabs(["➕ 點數加減與全店歸零", "👥 員工帳號管理", "📋 點數報表與願望審核"])
         
         conn = get_db_connection()
@@ -267,7 +285,7 @@ elif mode == "🔐 後台：店長管理專區":
                                           (u_name, points_val, f"[全店] {reason_val}"))
                             conn.commit()
                             st.toast(f"✅ 全店各增加 {points_val} 點成功！", icon="🎉")
-                            st.success(f"✅ 成功：已為【全店所有夥伴】各增加 {Points_val if 'Points_val' in locals() else points_val} 點！（事由：{reason_val}）")
+                            st.success(f"✅ 成功：已為【全店所有夥伴】各增加 {points_val} 點！（事由：{reason_val}）")
                             st.rerun()
                         else:
                             c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
@@ -363,7 +381,3 @@ elif mode == "🔐 後台：店長管理專區":
                 st.write(f"ID: {wid} | 內容：**{witem}** | 目前狀態：`{wstatus}`")
                 
         conn.close()
-        
-    elif password != "":
-        st.error("密碼錯誤，請重新輸入！")
-        
