@@ -102,7 +102,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
+st.markdown("<h1>✨ 紅斗泥許願池</h1>", unsafe_allow_html=True)
 st.markdown("工作不無聊，目標自己選！累積點數實現大家的願望清單 🎁")
 
 # 側邊欄：模式切換
