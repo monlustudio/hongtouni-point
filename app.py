@@ -102,8 +102,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>✨ 紅斗泥許願池</h1>", unsafe_allow_html=True)
-st.markdown("上班不輕鬆，要有小獎勵！累積點數實現大家的願望清單 🎁")
+st.markdown("<h1>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
+st.markdown("工作不無聊，目標自己選！累積點數實現大家的願望清單 🎁")
 
 # 側邊欄：模式切換
 st.sidebar.markdown("### 🧭 導覽選單")
@@ -119,7 +119,7 @@ if mode == "🏠 前台：點數與許願池":
     
     c.execute("SELECT SUM(points) FROM points_log")
     total_points = c.fetchone()[0] or 0
-    total_money = total_points * 3
+    total_money = total_points * 5  # <-- 點數與現金比值 (1點 = 5元)
     
     col1, col2 = st.columns(2)
     col1.metric("目前全店累積總點數", f"{total_points} 點")
@@ -129,9 +129,8 @@ if mode == "🏠 前台：點數與許願池":
     
     # 2. 本月的許願池 (第二個)
     st.subheader("🎁 本月的許願池")
-    st.info("許願內容不設限：升級內場音響、零食櫃、外送飲料、聖誕樹、公共衛生棉、披薩炸雞、員工聚餐...大家自己發揮！")
+    st.info("許願內容不設限：藍牙音響、零食櫃、外送飲料、聖誕樹、公共衛生棉、披薩炸雞、員工聚餐...大家自己發揮！")
     
-    # 顯示本月許願清單
     c.execute("SELECT wish_item, status, date FROM wishes WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY id DESC")
     wishes = c.fetchall()
     
@@ -166,6 +165,7 @@ if mode == "🏠 前台：點數與許願池":
                     else:
                         c.execute("INSERT INTO wishes (username, wish_item) VALUES (?, ?)", (user_account, wish_input))
                         conn.commit()
+                        st.toast("🎉 許願成功！", icon="✅")
                         st.success("🎉 許願成功！你的願望已經匿名加入許願池了！")
                         st.rerun()
                         
@@ -198,10 +198,8 @@ elif mode == "🔐 後台：店長管理專區":
         conn = get_db_connection()
         c = conn.cursor()
         
-        # 取得所有員工清單
         c.execute("SELECT username, name FROM users WHERE role != 'manager'")
         staff_list = c.fetchall()
-        # 加入「全店」選項
         staff_dict = {"🌟 【全店夥伴一起加分/歸零】": "ALL"}
         for username, name in staff_list:
             staff_dict[f"{name} ({username})"] = username
@@ -247,7 +245,8 @@ elif mode == "🔐 後台：店長管理專區":
                                     c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                               (u_name, -u_pts, "全店結算歸零重置"))
                             conn.commit()
-                            st.success("已將【全店所有夥伴】的點數全數歸零重置！")
+                            st.toast("✅ 全店點數已成功歸零！", icon="🎯")
+                            st.success("✅ 成功：已將【全店所有夥伴】的點數全數歸零重置！")
                             st.rerun()
                         else:
                             c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (target_username,))
@@ -256,7 +255,8 @@ elif mode == "🔐 後台：店長管理專區":
                                 c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                           (target_username, -current_user_pts, "結算歸零重置"))
                                 conn.commit()
-                                st.success(f"已將該夥伴的點數歸零！")
+                                st.toast("✅ 該夥伴點數已歸零！", icon="🎯")
+                                st.success("✅ 成功：已將該夥伴的點數歸零！")
                                 st.rerun()
                             else:
                                 st.info("該夥伴目前點數已經是 0。")
@@ -266,13 +266,15 @@ elif mode == "🔐 後台：店長管理專區":
                                 c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                           (u_name, points_val, f"[全店] {reason_val}"))
                             conn.commit()
-                            st.success(f"成功為【全店所有夥伴】各增加 {points_val} 點！（事由：{reason_val}）")
+                            st.toast(f"✅ 全店各增加 {points_val} 點成功！", icon="🎉")
+                            st.success(f"✅ 成功：已為【全店所有夥伴】各增加 {Points_val if 'Points_val' in locals() else points_val} 點！（事由：{reason_val}）")
                             st.rerun()
                         else:
                             c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                       (target_username, points_val, reason_val))
                             conn.commit()
-                            st.success(f"成功增加 {points_val} 點！（事由：{reason_val}）")
+                            st.toast(f"✅ 成功增加 {points_val} 點！", icon="🎉")
+                            st.success(f"✅ 成功：已增加 {points_val} 點！（事由：{reason_val}）")
                             st.rerun()
                         
         with tab2:
@@ -289,7 +291,8 @@ elif mode == "🔐 後台：店長管理專區":
                         try:
                             c.execute("INSERT INTO users (username, name, role) VALUES (?, ?, 'staff')", (new_username, new_name))
                             conn.commit()
-                            st.success(f"成功新增員工帳號：{new_name} ({new_username})")
+                            st.toast("✅ 員工帳號新增成功！", icon="👤")
+                            st.success(f"✅ 成功新增員工帳號：{new_name} ({new_username})")
                             st.rerun()
                         except sqlite3.IntegrityError:
                             st.error("此帳號已經存在，請換一個帳號名稱。")
@@ -302,6 +305,7 @@ elif mode == "🔐 後台：店長管理專區":
                 if st.button("🗑️ 確認刪除此員工帳號"):
                     c.execute("DELETE FROM users WHERE username = ?", (del_username,))
                     conn.commit()
+                    st.toast("🗑️ 帳號已刪除", icon="⚠️")
                     st.warning(f"已刪除帳號：{del_staff_label}")
                     st.rerun()
             else:
