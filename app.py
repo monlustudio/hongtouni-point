@@ -129,7 +129,7 @@ if mode == "🏠 前台：點數與許願池":
     
     # 2. 本月的許願池 (第二個)
     st.subheader("🎁 本月的許願池")
-    st.info("許願內容不設限：藍牙音響、零食櫃、外送飲料、聖誕樹、公共衛生棉、披薩炸雞、員工聚餐...大家自己發揮！")
+    st.info("許願內容不設限：升級內場音響、零食櫃、外送飲料、聖誕樹、公共衛生棉、披薩炸雞、員工聚餐...大家自己發揮！")
     
     # 顯示本月許願清單
     c.execute("SELECT wish_item, status, date FROM wishes WHERE strftime('%Y-%m', date) = strftime('%Y-%m', 'now') ORDER BY id DESC")
