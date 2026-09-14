@@ -39,7 +39,7 @@ def get_db_connection():
 # --- 介面設定 ---
 st.set_page_config(page_title="紅斗泥許願池與點數系統", page_icon="✨", layout="centered")
 
-# --- 自訂 CSS 樣式 ---
+# --- 自訂 CSS 樣式（包含固定紫底白字的成功提示框） ---
 st.markdown("""
     <style>
     /* 全局背景色 */
@@ -71,7 +71,18 @@ st.markdown("""
         color: #2c2c2c !important;
     }
     
-    /* 資訊框文字與背景調整 */
+    /* 成功提示訊息（st.success）強制設定為固定紫底 #7b527b 與白字 #fffeee */
+    div[data-baseweb="notification"], .stSuccess {
+        background-color: #7b527b !important;
+        color: #fffeee !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 8px !important;
+    }
+    .stSuccess * {
+        color: #fffeee !important;
+    }
+    
+    /* 一般資訊框 / 警告框調整 */
     .stAlert {
         background-color: rgba(255, 255, 255, 0.15) !important;
         color: #fffeee !important;
@@ -102,7 +113,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>✨ 紅斗泥許願池</h1>", unsafe_allow_html=True)
+st.markdown("<h1>✨ 紅斗泥 · 夥伴許願池與點數福利站</h1>", unsafe_allow_html=True)
 st.markdown("工作不無聊，目標自己選！累積點數實現大家的願望清單 🎁")
 
 # 側邊欄：模式切換
@@ -163,10 +174,12 @@ if mode == "🏠 前台：點數與許願池":
                     if already_wished:
                         st.warning("你這個月已經許過願囉！把機會留到下個月，或者大家一起努力集點達成現有的願望吧！")
                     else:
+                        c.execute("SELECT * FROM wishes WHERE username = ? AND strftime('%Y-%m', date) = strftime('%Y-%m', 'now')", (user_account,))
                         c.execute("INSERT INTO wishes (username, wish_item) VALUES (?, ?)", (user_account, wish_input))
                         conn.commit()
-                        st.toast("🎉 許願成功！", icon="✅")
                         st.success("🎉 許願成功！你的願望已經匿名加入許願池了！")
+                        import time
+                        time.sleep(2)
                         st.rerun()
                         
     st.markdown("---")
@@ -188,7 +201,6 @@ if mode == "🏠 前台：點數與許願池":
 elif mode == "🔐 後台：店長管理專區":
     st.subheader("🔐 店長管理後台登入")
     
-    # 使用 Session State 來記錄是否已成功登入
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
@@ -201,6 +213,8 @@ elif mode == "🔐 後台：店長管理專區":
                 if password_input == "daifuku888":
                     st.session_state.authenticated = True
                     st.success("登入成功！")
+                    import time
+                    time.sleep(1.5)
                     st.rerun()
                 else:
                     st.error("密碼錯誤，請重新輸入！")
@@ -263,8 +277,9 @@ elif mode == "🔐 後台：店長管理專區":
                                     c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                               (u_name, -u_pts, "全店結算歸零重置"))
                             conn.commit()
-                            st.toast("✅ 全店點數已成功歸零！", icon="🎯")
                             st.success("✅ 成功：已將【全店所有夥伴】的點數全數歸零重置！")
+                            import time
+                            time.sleep(2)
                             st.rerun()
                         else:
                             c.execute("SELECT SUM(points) FROM points_log WHERE username = ?", (target_username,))
@@ -273,8 +288,9 @@ elif mode == "🔐 後台：店長管理專區":
                                 c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                           (target_username, -current_user_pts, "結算歸零重置"))
                                 conn.commit()
-                                st.toast("✅ 該夥伴點數已歸零！", icon="🎯")
                                 st.success("✅ 成功：已將該夥伴的點數歸零！")
+                                import time
+                                time.sleep(2)
                                 st.rerun()
                             else:
                                 st.info("該夥伴目前點數已經是 0。")
@@ -284,15 +300,17 @@ elif mode == "🔐 後台：店長管理專區":
                                 c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                           (u_name, points_val, f"[全店] {reason_val}"))
                             conn.commit()
-                            st.toast(f"✅ 全店各增加 {points_val} 點成功！", icon="🎉")
                             st.success(f"✅ 成功：已為【全店所有夥伴】各增加 {points_val} 點！（事由：{reason_val}）")
+                            import time
+                            time.sleep(2)
                             st.rerun()
                         else:
                             c.execute("INSERT INTO points_log (username, points, reason) VALUES (?, ?, ?)", 
                                       (target_username, points_val, reason_val))
                             conn.commit()
-                            st.toast(f"✅ 成功增加 {points_val} 點！", icon="🎉")
                             st.success(f"✅ 成功：已增加 {points_val} 點！（事由：{reason_val}）")
+                            import time
+                            time.sleep(2)
                             st.rerun()
                         
         with tab2:
@@ -309,8 +327,9 @@ elif mode == "🔐 後台：店長管理專區":
                         try:
                             c.execute("INSERT INTO users (username, name, role) VALUES (?, ?, 'staff')", (new_username, new_name))
                             conn.commit()
-                            st.toast("✅ 員工帳號新增成功！", icon="👤")
                             st.success(f"✅ 成功新增員工帳號：{new_name} ({new_username})")
+                            import time
+                            time.sleep(2)
                             st.rerun()
                         except sqlite3.IntegrityError:
                             st.error("此帳號已經存在，請換一個帳號名稱。")
@@ -323,8 +342,9 @@ elif mode == "🔐 後台：店長管理專區":
                 if st.button("🗑️ 確認刪除此員工帳號"):
                     c.execute("DELETE FROM users WHERE username = ?", (del_username,))
                     conn.commit()
-                    st.toast("🗑️ 帳號已刪除", icon="⚠️")
                     st.warning(f"已刪除帳號：{del_staff_label}")
+                    import time
+                    time.sleep(2)
                     st.rerun()
             else:
                 st.info("目前沒有任何員工帳號可刪除。")
